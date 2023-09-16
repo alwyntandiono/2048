@@ -1,16 +1,17 @@
 package com.tpcstld.twozerogame;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class Grid {
 
     public final Tile[][] field;
-    public final Tile[][] undoField;
+    public final List<Tile[][]> undoFields;
     private final Tile[][] bufferField;
 
     public Grid(int sizeX, int sizeY) {
         field = new Tile[sizeX][sizeY];
-        undoField = new Tile[sizeX][sizeY];
+        undoFields = new ArrayList<>();
         bufferField = new Tile[sizeX][sizeY];
         clearGrid();
         clearUndoGrid();
@@ -83,6 +84,8 @@ public class Grid {
     }
 
     public void saveTiles() {
+        Tile[][] undoField = new Tile[bufferField.length][bufferField[0].length];
+        undoFields.add(undoField);
         for (int xx = 0; xx < bufferField.length; xx++) {
             for (int yy = 0; yy < bufferField[0].length; yy++) {
                 if (bufferField[xx][yy] == null) {
@@ -106,7 +109,8 @@ public class Grid {
         }
     }
 
-    public void revertTiles() {
+    public boolean revertTiles() {
+        Tile[][] undoField = undoFields.remove(undoFields.size() - 1);
         for (int xx = 0; xx < undoField.length; xx++) {
             for (int yy = 0; yy < undoField[0].length; yy++) {
                 if (undoField[xx][yy] == null) {
@@ -116,6 +120,7 @@ public class Grid {
                 }
             }
         }
+        return !undoFields.isEmpty();
     }
 
     public void clearGrid() {
@@ -127,10 +132,6 @@ public class Grid {
     }
 
     private void clearUndoGrid() {
-        for (int xx = 0; xx < field.length; xx++) {
-            for (int yy = 0; yy < field[0].length; yy++) {
-                undoField[xx][yy] = null;
-            }
-        }
+        undoFields.clear();
     }
 }

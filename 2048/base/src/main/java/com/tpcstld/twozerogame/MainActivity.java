@@ -22,6 +22,8 @@ import com.google.android.gms.tasks.Task;
 import com.tpcstld.twozerogame.snapshot.SnapshotData;
 import com.tpcstld.twozerogame.snapshot.SnapshotManager;
 
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final String WIDTH = "width";
@@ -95,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = settings.edit();
         Tile[][] field = view.game.grid.field;
-        Tile[][] undoField = view.game.grid.undoField;
+        List<Tile[][]> undoFields = view.game.grid.undoFields;
         editor.putInt(WIDTH, field.length);
         editor.putInt(HEIGHT, field.length);
         for (int xx = 0; xx < field.length; xx++) {
@@ -105,17 +107,29 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     editor.putInt(xx + " " + yy, 0);
                 }
+            }
+        }
 
-                if (undoField[xx][yy] != null) {
-                    editor.putInt(UNDO_GRID + xx + " " + yy, undoField[xx][yy].getValue());
-                } else {
-                    editor.putInt(UNDO_GRID + xx + " " + yy, 0);
+        for (int i = 0; i < undoFields.size(); i++) {
+            Tile[][] undoField = undoFields.get(i);
+            for (int xx = 0; xx < field.length; xx++) {
+                for (int yy = 0; yy < field[0].length; yy++) {
+                    if (undoField[xx][yy] != null) {
+                        editor.putInt(UNDO_GRID + i + " " + xx + " " + yy, undoField[xx][yy].getValue());
+                    } else {
+                        editor.putInt(UNDO_GRID + i + " " + xx + " " + yy, 0);
+                    }
                 }
             }
         }
         editor.putLong(SCORE, view.game.score);
         editor.putLong(HIGH_SCORE, view.game.highScore);
-        editor.putLong(UNDO_SCORE, view.game.lastScore);
+
+        List<Long> lastScores = view.game.lastScores;
+        for (int i = 0; i < lastScores.size(); i++) {
+            editor.putLong(UNDO_SCORE + i, lastScores.get(i));
+        }
+
         editor.putBoolean(CAN_UNDO, view.game.canUndo);
         editor.putInt(GAME_STATE, view.game.gameState);
         editor.putInt(UNDO_GAME_STATE, view.game.lastGameState);
@@ -141,19 +155,43 @@ public class MainActivity extends AppCompatActivity {
                 } else if (value == 0) {
                     view.game.grid.field[xx][yy] = null;
                 }
+            }
+        }
 
-                int undoValue = settings.getInt(UNDO_GRID + xx + " " + yy, -1);
-                if (undoValue > 0) {
-                    view.game.grid.undoField[xx][yy] = new Tile(xx, yy, undoValue);
-                } else if (value == 0) {
-                    view.game.grid.undoField[xx][yy] = null;
+        for (int i = 0; true; i++) {
+            Tile[][] undoField = new Tile[view.game.grid.field.length][view.game.grid.field[0].length];
+            boolean valueExist = true;
+            for (int xx = 0; xx < view.game.grid.field.length; xx++) {
+                for (int yy = 0; yy < view.game.grid.field[0].length; yy++) {
+                    int undoValue = settings.getInt(UNDO_GRID + i + " " + xx + " " + yy, -1);
+                    if (undoValue > 0) {
+                        undoField[xx][yy] = new Tile(xx, yy, undoValue);
+                    } else if (undoValue == 0) {
+                        undoField[xx][yy] = null;
+                    } else if (undoValue == -1) {
+                        valueExist = false;
+                    }
                 }
+            }
+            if (valueExist) {
+                view.game.grid.undoFields.add(undoField);
+            } else {
+                break;
             }
         }
 
         view.game.score = settings.getLong(SCORE, view.game.score);
         view.game.highScore = settings.getLong(HIGH_SCORE, view.game.highScore);
-        view.game.lastScore = settings.getLong(UNDO_SCORE, view.game.lastScore);
+
+        for (int i = 0; true; i++) {
+            long lastScore = settings.getLong(UNDO_SCORE + i, -1);
+            if (lastScore >= 0) {
+                view.game.lastScores.add(lastScore);
+            } else {
+                break;
+            }
+        }
+
         view.game.canUndo = settings.getBoolean(CAN_UNDO, view.game.canUndo);
         view.game.gameState = settings.getInt(GAME_STATE, view.game.gameState);
         view.game.lastGameState = settings.getInt(UNDO_GAME_STATE, view.game.lastGameState);

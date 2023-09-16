@@ -47,7 +47,7 @@ public class MainGame {
     boolean canUndo;
     public long score = 0;
     long highScore = 0;
-    long lastScore = 0;
+    List<Long> lastScores = new ArrayList<>();
     private long bufferScore = 0;
 
     MainGame(Context context, MainView view) {
@@ -165,7 +165,7 @@ public class MainGame {
     private void saveUndoState() {
         grid.saveTiles();
         canUndo = true;
-        lastScore = bufferScore;
+        lastScores.add(bufferScore);
         lastGameState = bufferGameState;
     }
 
@@ -177,10 +177,9 @@ public class MainGame {
 
     void revertUndoState() {
         if (canUndo) {
-            canUndo = false;
             aGrid.cancelAnimations();
-            grid.revertTiles();
-            score = lastScore;
+            canUndo = grid.revertTiles();
+            score = lastScores.remove(lastScores.size() - 1);
             gameState = lastGameState;
             mView.refreshLastTime = true;
             mView.invalidate();
